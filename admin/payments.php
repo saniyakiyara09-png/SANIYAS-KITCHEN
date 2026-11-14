@@ -1,0 +1,8 @@
+<?php
+require_once __DIR__ . '/../includes/auth.php'; require_admin();
+if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$id=(int)$_POST['id'];$status=$_POST['status']??'pending';if(in_array($status,['paid','rejected','pending'],true)){$pdo->prepare("UPDATE payments SET status=?,verified_at=IF(?='paid',NOW(),NULL) WHERE id=?")->execute([$status,$status,$id]);}set_flash('success','Payment review saved. Only mark paid after checking your UPI bank statement.');redirect('admin/payments.php');}
+$pageTitle='Payments';$rows=$pdo->query("SELECT p.*,o.user_id,o.total_amount FROM payments p JOIN orders o ON o.id=p.order_id ORDER BY p.id DESC")->fetchAll();
+require __DIR__ . '/../includes/header.php';
+?>
+<section class="page-hero compact"><h1>Payment <em>verification</em></h1><p>Verify UTR/reference against your bank or UPI app before approving.</p></section><section class="section"><div class="table-wrap"><table><tr><th>Order</th><th>Amount</th><th>Reference</th><th>Status</th><th>Review</th></tr><?php foreach($rows as $p): ?><tr><td>#<?= (int)$p['order_id'] ?></td><td><?= money($p['amount']) ?></td><td><?= e($p['customer_reference']??'Not submitted') ?></td><td><?= e($p['status']) ?></td><td><form method="post" class="inline-form"><input type="hidden" name="csrf_token" value="<?= csrf_token() ?>"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>"><select name="status"><?php foreach(['pending','paid','rejected'] as $s): ?><option <?= $p['status']===$s?'selected':'' ?>><?= $s ?></option><?php endforeach; ?></select><button class="btn btn-small btn-gold">Save</button></form></td></tr><?php endforeach; ?></table></div></section>
+<?php require __DIR__ . '/../includes/footer.php'; ?>
